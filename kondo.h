@@ -46,6 +46,7 @@ int kondo_checksum(UCHAR OUTBUFFER[], int nBytes);		// Calulate checksum of Buff
 int kondo_ack( void );						// Send and receive an acknowledgment from RCB4
 int kondo_send( KondoRef ki );					// Send data over serial port
 int kondo_read( KondoRef ki, int bytesToRead ); 		// Receive Data
+int kondo_purge_buffers( KondoRef ki );				// Purge the RCB4 buffers
 int kondo_led(bool isLED);					// Toggle the LED on and off
 int kondo_servo_ID_address(int SERVO_ID, bool SIO);		// Inform the EEPROM where the servo is in address space (by ID)
 int kondo_servo_addresses( void);				// Inform the EEPROM where the servo is in address space (ALL)

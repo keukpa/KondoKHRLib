@@ -16,6 +16,8 @@ unsigned int HOLD_POS = 32767;
 
 KondoInstance ki;
 
+bool debug = 0;
+
 struct ftdi_context *ftdi;
 
 int kondo_create_instance(KondoRef ki)
@@ -35,6 +37,7 @@ int kondo_set_comms( KondoRef ki )
   int i;
 
   ki->debug = 1;
+  debug = 1;
 
   if(ftdi_init(&ki->ftdic) < 0)
     printf("Some Error\n");
@@ -122,14 +125,16 @@ int kondo_ack()
 int kondo_send(KondoRef ki)
 {
   assert(ki);
+  kondo_purge_buffers(ki);
   int i;
 
   if((i = ftdi_write_data(&ki->ftdic, OUTBUFFER, OUTBUFFER[0])) < 0)
     printf("Some error in writing to FTDI\n");
 
-  printf("DEBUG: value of i is %d \n", i);
-
-  usleep(800);
+  if (&ki->debug)
+  {
+    printf("DEBUG: value of i is %d \n", i);
+  }
 
   return i;
 }
@@ -151,7 +156,8 @@ int kondo_read(KondoRef ki, int numBytes)
   {
     printf("Some error in reading from FTDI\n");
   }
-  else if(&ki->debug)
+
+  if(&ki->debug)
   {
     printf("Debug Received: ");
     for(int i = 0; i < numBytes; i++)
@@ -163,6 +169,23 @@ int kondo_read(KondoRef ki, int numBytes)
 
   return i;
 }
+
+/* Function kondo_purge_buffers is used to purge both the TX and RB buffers
+ *
+ * @param KondoRef ki - a KondoRef struct
+ * Returns 0 if sucessful <0 if error.
+ *
+ */
+int kondo_purge_buffers(KondoRef ki)
+{
+  assert(ki);
+  if (ftdi_usb_purge_buffers(&ki->ftdic) < 0)
+    printf("Error when purging buffers.\n");
+
+  return 0;
+}
+
+
 
 /*
  * Function kondo_led switches on/off the RCB4 Green LED
@@ -243,11 +266,15 @@ int kondo_servo_ID_address(int Servo_ID, bool SIO)
   returnVal = kondo_send(&ki);
   returnVal = kondo_read(&ki, 4);
 
-  printf("DEBUG1: ");
-  for(int i = 0; i < 27; i++)
+  if(debug == 1)
   {
-    printf("%X ", OUTBUFFER[i]);
-  } 
+    printf("DEBUG Single servo ID address: ");
+    for(int i = 0; i < 27; i++)
+    {
+      printf("%X ", OUTBUFFER[i]);
+    }
+    printf("\n");
+  }
 
   return returnVal;
 }
@@ -406,6 +433,7 @@ int kondo_set_servo_ID_pos(int IDX, int SIO, unsigned int aPos)
 
 
 
+
 int main ( void )
 {
   int ret = kondo_create_instance(&ki);
@@ -427,33 +455,33 @@ int main ( void )
 
   // Test light
   kondo_led(true);
-  printf("Press ANY key!");
-  getchar();
+//  printf("Press ANY key!");
+//  getchar();
   kondo_led(false);
 
   kondo_servo_ID_address(4, false);
-  printf("Press ANY key!");
-  getchar();
+//  printf("Press ANY key!");
+//  getchar();
 
 
   SERVOS[8] = 0x01;     // location within the array i.e. IDX * 2 + SIO
 
   kondo_init_servo_ID();  // activate servo 4
 
-  printf("Press ANY key!");
-  getchar();
+//  printf("Press ANY key!");
+//  getchar();
 
 
   kondo_servo_free();
   kondo_servo_on();
 
-  printf("Press ANY key!");
-  getchar();
+//  printf("Press ANY key!");
+//  getchar();
 
   kondo_set_servo_ID_pos(4, 0, 7000);
 
-  printf("Press ANY key!");
-  getchar();
+//  printf("Press ANY key!");
+//  getchar();
 
   kondo_close_instance(&ki);
 
