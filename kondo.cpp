@@ -10,6 +10,8 @@ unsigned char SERVOS[35];
 int bStatus;
 int returnVal = 0; // Used for the return value of functions
 
+int result = 0;
+
 unsigned int FREE_POS = 32768;
 unsigned int HOLD_POS = 32767;
 
@@ -185,8 +187,6 @@ int kondo_purge_buffers(KondoRef ki)
   return 0;
 }
 
-
-
 /*
  * Function kondo_led switches on/off the RCB4 Green LED
  * @param bool isLED - a boolean value true = on; false = off
@@ -278,7 +278,6 @@ int kondo_servo_ID_address(int Servo_ID, bool SIO)
 
   return returnVal;
 }
-
 
 /*
  * Function kondo_init_servo_ID - This function tells the RCB4 board, which 
@@ -431,7 +430,70 @@ int kondo_set_servo_ID_pos(int IDX, int SIO, unsigned int aPos)
   return returnVal;
 }
 
+/* Function kondo_read_analog_values reads the pins for analog input
+ * Battery, AD1, AD2, AD3, etc
+ * Analog number 0 is the battery voltage
+ * Analog numbers 1-11 are the PINS.
+ */
+int kondo_read_analog_values(int result, UINT num)
+{
+  int i;
 
+  // Check port number range
+  if (num < 0 || num > 10)
+    printf("Error: Invalid analog port number.\n");
+
+  // memory locations of the requested analog values
+  int mem_h = RCB4_ADDR_AD_READ_BASE + (num * 2);
+  int mem_l = RCB4_ADDR_AD_REF_BASE + (num * 2);
+  int mem_h_val = 0, mem_l_val = 0;
+
+  // Build command to read mem_h from RAM to COM
+  OUTBUFFER[0] = 10;			// num of bytes
+  OUTBUFFER[1] = RCB4_CMD_MOV;		// Move command
+  OUTBUFFER[2] = RCB4_RAM_TO_COM;	// RAM to COM
+  OUTBUFFER[3] = 0;			// dest addr L (0 for COM)
+  OUTBUFFER[4] = 0;			// dest addr M (0 for COM)
+  OUTBUFFER[5] = 0;			// dest addr H (0 for COM)
+  OUTBUFFER[6] = (UCHAR) (mem_h);	// mem_h low byte
+  OUTBUFFER[7] = (UCHAR) (mem_h >> 8);	// mem_h high byte
+  OUTBUFFER[8] = 2;			// bytes to move
+  OUTBUFFER[9] = kondo_checksum(OUTBUFFER, 9);
+
+  // send 10 bytes, expect 5 bytes
+  returnVal = kondo_send(&ki);
+  returnVal = kondo_read(&ki, 5);
+
+  // Decode mem_h value (which may be negative)
+  mem_h_val = ((mem_h_val | INBUFFER[3]) << 8) | INBUFFER[2];
+  if(mem_h_val > 0x8000)
+    mem_h_val = -(~mem_h_val & 0x7fff) -1;
+
+  // Build command to read mem_l from RAM to COM
+  OUTBUFFER[0] = 10;                    // num of bytes
+  OUTBUFFER[1] = RCB4_CMD_MOV;          // Move command
+  OUTBUFFER[2] = RCB4_RAM_TO_COM;       // RAM to COM
+  OUTBUFFER[3] = 0;                     // dest addr L (0 for COM)
+  OUTBUFFER[4] = 0;                     // dest addr M (0 for COM)
+  OUTBUFFER[5] = 0;                     // dest addr H (0 for COM)
+  OUTBUFFER[6] = (UCHAR) (mem_l);       // mem_h low byte
+  OUTBUFFER[7] = (UCHAR) (mem_l >> 8);  // mem_h high byte
+  OUTBUFFER[8] = 2;                     // bytes to move
+  OUTBUFFER[9] = kondo_checksum(OUTBUFFER, 9);
+
+  // send 10 bytes, expect 5 bytes
+  returnVal = kondo_send(&ki);
+  returnVal = kondo_read(&ki, 5);
+
+  // Deconde mem_l vlaue (which might be negative)
+  mem_l_val = ((mem_l_val | INBUFFER[3]) << 8) | INBUFFER[2];
+  if(mem_l_val > 0x8000)
+    mem_l_val = -(~mem_l_val & 0x7fff) -1;
+
+  result = mem_h_val + mem_l_val;
+
+  return 0;
+}
 
 
 int main ( void )
@@ -455,33 +517,33 @@ int main ( void )
 
   // Test light
   kondo_led(true);
-//  printf("Press ANY key!");
-//  getchar();
+  printf("Press ANY key!");
+  getchar();
   kondo_led(false);
 
   kondo_servo_ID_address(4, false);
-//  printf("Press ANY key!");
-//  getchar();
+  printf("Press ANY key!");
+  getchar();
 
 
   SERVOS[8] = 0x01;     // location within the array i.e. IDX * 2 + SIO
 
   kondo_init_servo_ID();  // activate servo 4
 
-//  printf("Press ANY key!");
-//  getchar();
+  printf("Press ANY key!");
+  getchar();
 
 
   kondo_servo_free();
   kondo_servo_on();
 
-//  printf("Press ANY key!");
-//  getchar();
+  printf("Press ANY key!");
+  getchar();
 
   kondo_set_servo_ID_pos(4, 0, 7000);
 
-//  printf("Press ANY key!");
-//  getchar();
+  printf("Press ANY key!");
+  getchar();
 
   kondo_close_instance(&ki);
 

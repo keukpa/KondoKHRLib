@@ -4,7 +4,16 @@
 #include <assert.h>
 #include "ftdi.h"
 
+#ifndef __UCHAR__
+#define __UCHAR__
 typedef unsigned char UCHAR;	   // Define a UCHAR
+#endif
+
+#ifndef __UINT__
+#define __UINT__
+typedef unsigned int UINT;
+#endif
+
 
 // Servo Addresses
 #define SERVO_START 0x90		// Address of SERVO 0
@@ -15,7 +24,18 @@ typedef unsigned char UCHAR;	   // Define a UCHAR
 // RCB4 Commands
 #define RCB4_ACK_BYTE   0x06            // Positive Ack Byte
 #define RCB4_NCK_BYTE   0x15            // Negative Ack Byte
-#define RCB4_CMD_ACK	0xFE 		//ACK Command
+#define RCB4_CMD_ACK	0xFE 		// ACK Command
+#define RCB4_CMD_MOV	0x00		// MOV Command
+
+// RCB4 Device Types
+#define RCB4_DEV_RAM	0x00		// RAM
+#define RCB4_DEV_COM	0x02		// COM port
+#define RCB4_RAM_TO_COM	((RCB4_DEV_COM << 4) | RCB4_DEV_RAM)
+
+
+// RCB4 Addresses and ROM / RAM
+#define RCB4_ADDR_AD_READ_BASE	0x22	// Analog reading address (ro)
+#define RCB4_ADDR_AD_REF_BASE	0xC	// Analog reference value address (rw)
 
 // USB Adapter
 #define RCB4_BAUD	115200
